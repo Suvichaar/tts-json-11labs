@@ -47,8 +47,12 @@ voice_id = st.text_input(
     help="Enter your ElevenLabs Voice ID (e.g., yD0Zg2jxgfQLY8I2MEHO). Default is read from secrets if configured."
 )
 
-# Model ID is hardcoded
-model_id = "eleven_multilingual_v2"
+# Model ID can be configured by user
+model_id = st.text_input(
+    "Model ID",
+    value="eleven_multilingual_v2",
+    help="Enter ElevenLabs Model ID (default: eleven_multilingual_v2). Options: eleven_multilingual_v2, eleven_monolingual_v1, etc."
+)
 
 # === TTS + UPLOAD ===
 def synthesize_and_upload(paragraphs, voice_id, model_id, api_key):
@@ -135,6 +139,8 @@ if uploaded_file:
         st.error("❌ ElevenLabs API Key is required. Please add it to .streamlit/secrets.toml under [elevenlabs] section")
     elif not voice_id:
         st.warning("⚠️ Please enter a Voice ID")
+    elif not model_id:
+        st.warning("⚠️ Please enter a Model ID")
     else:
         if st.button("🚀 Generate TTS + Upload to S3"):
             with st.spinner("Generating TTS and uploading to S3..."):
