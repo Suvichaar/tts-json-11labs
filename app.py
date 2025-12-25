@@ -152,6 +152,10 @@ def generate_csv_links(output):
     return output_csv.getvalue()
 
 # === MAIN EXECUTION ===
+# Initialize session state for output
+if 'tts_output' not in st.session_state:
+    st.session_state.tts_output = None
+
 if uploaded_file:
     paragraphs = json.load(uploaded_file)
     st.success(f"✅ Loaded {len(paragraphs)} paragraphs")
@@ -170,30 +174,37 @@ if uploaded_file:
                     output = synthesize_and_upload(paragraphs, voice_id, model_id, elevenlabs_api_key)
                     
                     if output:
+                        # Store output in session state
+                        st.session_state.tts_output = output
                         st.success(f"✅ Done! Generated {len(output)} audio files and uploaded to S3!")
-                        
-                        # Download buttons side by side
-                        col1, col2 = st.columns(2)
-                        
-                        with col1:
-                            st.download_button(
-                                label="⬇️ Download Output JSON",
-                                data=json.dumps(output, indent=2, ensure_ascii=False),
-                                file_name="Output_data.json",
-                                mime="application/json"
-                            )
-                        
-                        with col2:
-                            csv_data = generate_csv_links(output)
-                            st.download_button(
-                                label="⬇️ Download Links CSV",
-                                data=csv_data,
-                                file_name="audio_links.csv",
-                                mime="text/csv"
-                            )
                     else:
                         st.error("❌ No audio files were generated. Please check the errors above.")
+                        st.session_state.tts_output = None
                 except Exception as e:
                     st.error(f"❌ Error: {e}")
                     import traceback
                     st.code(traceback.format_exc())
+                    st.session_state.tts_output = None
+        
+        # Display download buttons if output exists in session state
+        if st.session_state.tts_output:
+            st.markdown("---")
+            st.markdown("### 📥 Download Files")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.download_button(
+                    label="⬇️ Download Output JSON",
+                    data=json.dumps(st.session_state.tts_output, indent=2, ensure_ascii=False),
+                    file_name="Output_data.json",
+                    mime="application/json"
+                )
+            
+            with col2:
+                csv_data = generate_csv_links(st.session_state.tts_output)
+                st.download_button(
+                    label="⬇️ Download Links CSV",
+                    data=csv_data,
+                    file_name="audio_links.csv",
+                    mime="text/csv"
+                )
