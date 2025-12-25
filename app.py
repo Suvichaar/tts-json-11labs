@@ -4,6 +4,8 @@ import uuid
 import os
 import requests
 import boto3
+import csv
+import io
 
 # === SECRETS FROM STREAMLIT ===
 # Try to get ElevenLabs API key from secrets, with fallback
@@ -129,6 +131,26 @@ def synthesize_and_upload(paragraphs, voice_id, model_id, api_key):
 
     return result
 
+# === CSV GENERATION ===
+def generate_csv_links(output):
+    """Generate CSV with only the audio links"""
+    output_csv = io.StringIO()
+    writer = csv.writer(output_csv)
+    
+    # Write header
+    writer.writerow(["Link"])
+    
+    # Extract links from output
+    for slide_key in sorted(output.keys(), key=lambda x: int(x.replace("slide", ""))):
+        slide_data = output[slide_key]
+        # Find audio_url key (e.g., audio_url2, audio_url3, etc.)
+        for key, value in slide_data.items():
+            if key.startswith("audio_url"):
+                writer.writerow([value])
+                break
+    
+    return output_csv.getvalue()
+
 # === MAIN EXECUTION ===
 if uploaded_file:
     paragraphs = json.load(uploaded_file)
@@ -149,12 +171,26 @@ if uploaded_file:
                     
                     if output:
                         st.success(f"✅ Done! Generated {len(output)} audio files and uploaded to S3!")
-                        st.download_button(
-                            label="⬇️ Download Output JSON",
-                            data=json.dumps(output, indent=2, ensure_ascii=False),
-                            file_name="Output_data.json",
-                            mime="application/json"
-                        )
+                        
+                        # Download buttons side by side
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
+                            st.download_button(
+                                label="⬇️ Download Output JSON",
+                                data=json.dumps(output, indent=2, ensure_ascii=False),
+                                file_name="Output_data.json",
+                                mime="application/json"
+                            )
+                        
+                        with col2:
+                            csv_data = generate_csv_links(output)
+                            st.download_button(
+                                label="⬇️ Download Links CSV",
+                                data=csv_data,
+                                file_name="audio_links.csv",
+                                mime="text/csv"
+                            )
                     else:
                         st.error("❌ No audio files were generated. Please check the errors above.")
                 except Exception as e:
