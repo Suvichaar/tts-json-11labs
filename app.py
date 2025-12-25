@@ -31,23 +31,16 @@ uploaded_file = st.file_uploader("Upload JSON file", type=["json"])
 # ElevenLabs Configuration
 st.markdown("### ⚙️ ElevenLabs Configuration")
 
-# API Key input (show if not in secrets, or allow override)
-elevenlabs_api_key_input = st.text_input(
-    "ElevenLabs API Key",
-    value=ELEVENLABS_API_KEY,
-    type="password",
-    help="Enter your ElevenLabs API Key (or it will be read from secrets if configured)"
-)
+# API Key and Voice ID are read from secrets only (not exposed in UI)
+elevenlabs_api_key = ELEVENLABS_API_KEY
 
-# Use input value if provided, otherwise use from secrets
-elevenlabs_api_key = elevenlabs_api_key_input if elevenlabs_api_key_input else ELEVENLABS_API_KEY
+# Get Voice ID from secrets
+try:
+    voice_id = st.secrets.get("elevenlabs", {}).get("ELEVENLABS_VOICE_ID") or st.secrets.get("elevenlabs", {}).get("voice_id", "")
+except:
+    voice_id = ""
 
-voice_id = st.text_input(
-    "Voice ID",
-    value=st.secrets.get("elevenlabs", {}).get("ELEVENLABS_VOICE_ID") or st.secrets.get("elevenlabs", {}).get("voice_id", ""),
-    help="Enter your ElevenLabs Voice ID (e.g., yD0Zg2jxgfQLY8I2MEHO)"
-)
-
+# Model ID can be configured by user (less sensitive)
 model_id = st.text_input(
     "Model ID",
     value="eleven_multilingual_v2",
@@ -136,9 +129,9 @@ if uploaded_file:
 
     # Validate inputs
     if not elevenlabs_api_key:
-        st.error("❌ ElevenLabs API Key is required. Please enter it above or add it to .streamlit/secrets.toml")
+        st.error("❌ ElevenLabs API Key is required. Please add it to .streamlit/secrets.toml under [elevenlabs] section")
     elif not voice_id:
-        st.warning("⚠️ Please enter a Voice ID")
+        st.error("❌ ElevenLabs Voice ID is required. Please add it to .streamlit/secrets.toml under [elevenlabs] section")
     elif not model_id:
         st.warning("⚠️ Please enter a Model ID")
     else:
